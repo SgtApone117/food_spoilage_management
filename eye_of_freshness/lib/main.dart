@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
 Future<String> getDirectory() async {
@@ -23,6 +26,46 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final cameras = await availableCameras();
   runApp(MyApp(cameras: cameras));
+}
+
+
+Future<void> analyzeImage(String base64Image) async {
+  final String apiUrl = "https://vision.googleapis.com/v1/images:annotate?key=";
+
+  try {
+    final response = await http.post(
+      Uri.parse(apiUrl),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: json.encode({
+        "requests": [
+          {
+            "image": {
+              "content": base64Image, // The base64 encoded image string
+            },
+            "features": [
+              {
+                "type": "LABEL_DETECTION", // You can use TEXT_DETECTION, OBJECT_DETECTION, etc.
+                "maxResults": 10,
+              },
+            ],
+          },
+        ],
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      print("Labels detected: $data");
+    } else {
+      print("Error: ${response.statusCode}");
+      print("Error message: ${response.reasonPhrase}");
+      print("Error body: ${response.body}");
+    }
+  } catch (e) {
+    print("Error: $e");
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -159,15 +202,64 @@ class ThirdScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            kIsWeb ? Image.network(image.path) : Image.file(File(image.path)),
+            kIsWeb? Image.network(image.path) : Image.file(File(image.path)),
             SizedBox(height: 20),
             Text(
               'You clicked a picture',
               style: TextStyle(fontSize: 24),
             ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () async {
+                final bytes = await image.readAsBytes();
+                final base64Image = base64Encode(bytes);
+                await analyzeImage(base64Image);
+              },
+              child: Text('Analyze Image'),
+            ),
           ],
         ),
       ),
     );
+  }
+}
+
+class FoodItem {
+  final String foodtype;
+
+  FoodItem({required this.foodtype});
+
+  // Factory method to create a FoodItem object from a JSON map
+  factory FoodItem.fromJson(Map<String, dynamic> json) {
+    return FoodItem(
+      foodtype: json['foodtype'],
+    );
+  }
+
+  // Method to convert FoodItem object to JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'foodtype': foodtype,
+    };
+  }
+}
+
+Future<String> sendFoodType(FoodItem foodItem) async {
+  final url = Uri.parse('http://127.0.0.1:8000/start'); // FastAPI backend URL
+  final headers = {'Content-Type': 'application/json'};
+  final body = jsonEncode(foodItem.toJson()); // Convert FoodItem to JSON
+
+  try {
+    final response = await http.post(url, headers: headers, body: body);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['message']; // Returns the message received from FastAPI
+    } else {
+      return 'Failed to load message: ${response.statusCode}';
+    }
+  } catch (e) {
+    // Handle any errors like connection issues
+    return 'Error: $e';
   }
 }
