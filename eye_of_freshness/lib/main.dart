@@ -2,8 +2,42 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+
 void main() {
   runApp(MyApp());
+}
+
+Future<void> analyzeImage(String base64Image) async {
+  final String apiUrl = "https://vision.googleapis.com/v1/images:annotate?key=AIzaSyDOjr-iNMaeCTLPNmRt6Gze19wusGtL2U0s";
+
+  final response = await http.post(
+    Uri.parse(apiUrl),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: json.encode({
+      "requests": [
+        {
+          "image": {
+            "content": base64Image, // The base64 encoded image string
+          },
+          "features": [
+            {
+              "type": "LABEL_DETECTION", // You can use TEXT_DETECTION, OBJECT_DETECTION, etc.
+              "maxResults": 10,
+            },
+          ],
+        },
+      ],
+    }),
+  );
+
+  if (response.statusCode == 200) {
+    final data = json.decode(response.body);
+    print("Labels detected: $data");
+  } else {
+    print("Error: ${response.statusCode}");
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -74,6 +108,3 @@ Future<String> sendFoodType(FoodItem foodItem) async {
     return 'Error: $e';
   }
 }
-
-
-
