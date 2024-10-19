@@ -1,125 +1,174 @@
 import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
+import 'dart:io';
+import 'dart:math';
+import 'package:flutter/foundation.dart';
+import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
 
-void main() {
-  runApp(const MyApp());
+Future<String> getDirectory() async {
+  if (kIsWeb) {
+    // For Flutter Web, use a different directory or approach
+    // For example, you can use the IndexedDB API to store data
+    // or the File System API to access the file system
+    // For simplicity, let's just return a dummy directory
+    return '/web/directory';
+  } else {
+    // For other platforms, use the default path_provider
+    final documentsDirectory = await getApplicationDocumentsDirectory();
+    return documentsDirectory.path;
+  }
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final cameras = await availableCameras();
+  runApp(MyApp(cameras: cameras));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final List<CameraDescription> cameras;
 
-  // This widget is the root of your application.
+  MyApp({required this.cameras});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      title: 'Camera Demo',
+      home: FirstScreen(cameras: cameras),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+class FirstScreen extends StatelessWidget {
+  final List<CameraDescription> cameras;
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+  FirstScreen({required this.cameras});
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
       body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
           mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
+          children: [
             Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+              'Hi, Guest',
+              style: TextStyle(fontSize: 24),
+            ),
+            SizedBox(height: 20),
+            CircleAvatar(
+              backgroundImage: AssetImage('assets/profile_default.jpg'),
+              radius: 50,
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => SecondScreen(cameras: cameras)),
+                );
+              },
+              child: Text('Scan'),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class SecondScreen extends StatefulWidget {
+  final List<CameraDescription> cameras;
+
+  SecondScreen({required this.cameras});
+
+  @override
+  _SecondScreenState createState() => _SecondScreenState();
+}
+
+class _SecondScreenState extends State<SecondScreen> {
+  late CameraController _cameraController;
+  late Future<void> _initializeControllerFuture;
+  XFile? _image;
+
+  @override
+  void initState() {
+    super.initState();
+    _cameraController = CameraController(
+      widget.cameras.first,
+      ResolutionPreset.high,
+    );
+    _initializeControllerFuture = _cameraController.initialize();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Take a Picture'),
+      ),
+      body: FutureBuilder(
+        future: _initializeControllerFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done) {
+            return Stack(
+              children: [
+                CameraPreview(_cameraController),
+              ],
+            );
+          } else {
+            return Center(child: CircularProgressIndicator());
+          }
+        },
+      ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+        onPressed: () async {
+          try {
+            await _initializeControllerFuture;
+            final directory = await getDirectory();
+            String path = '$directory/${DateTime.now()}.png';
+            _image = await _cameraController.takePicture();
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => ThirdScreen(image: _image!)),
+            );
+          } catch (e) {
+            print(e);
+          }
+        },
+        child: Icon(Icons.camera),
+      ),
+    );
+  }
+}
+
+class ThirdScreen extends StatelessWidget {
+  final XFile image;
+
+  ThirdScreen({required this.image});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Clicked Picture'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            kIsWeb ? Image.network(image.path) : Image.file(File(image.path)),
+            SizedBox(height: 20),
+            Text(
+              'You clicked a picture',
+              style: TextStyle(fontSize: 24),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
