@@ -65,17 +65,15 @@ Future<String> sendFoodType(FoodItem foodItem) async {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      return data['message'] ?? 'No message returned from server'; // Ensure non-null
+      return data['message']; // Returns the message received from FastAPI
     } else {
-      return 'Failed to load message: ${response.statusCode}'; // Ensure non-null on failure
+      return 'Failed to load message: ${response.statusCode}';
     }
   } catch (e) {
     // Handle any errors like connection issues
-    return 'Error: $e'; // Ensure non-null on exception
+    return 'Error: $e';
   }
 }
-
-
 
 
 
