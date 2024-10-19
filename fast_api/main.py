@@ -10,7 +10,7 @@ import uvicorn
 app = FastAPI(debug=True, docs_url=None, redoc_url=None)
 app.mount("/static", StaticFiles(directory="static", html=True))
 
-#Apparently fixes some CORS issue
+# Fixes some CORS issues
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Allows all origins
@@ -29,10 +29,19 @@ async def custom_swagger_ui_html():
         swagger_js_url="static/swagger-ui-bundle.js",
         swagger_css_url="static/swagger-ui.css",
     )
-class StartModel(BaseModel):
-    s: str
 
-#request
-@app.post("/start", status_code=status.HTTP_200_OK)
-def start_app(start_data: StartModel):
-    return JSONResponse(status_code=status.HTTP_200_OK, content={"data": start_data.s})
+# Pydantic model for FoodRequest
+class FoodRequest(BaseModel):
+    foodtype: str
+
+# POST /start endpoint
+@app.post("/start")
+def start(food_request: FoodRequest):
+    # Return a JSON response with a 'message' field
+    return JSONResponse(content={"message": f"Received {food_request.foodtype}"})
+
+# GET root endpoint
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
+
