@@ -1,7 +1,7 @@
 import requests
 
 # Define the URL of the API
-url = 'http://127.0.0.1:8000/start'  # Ensure the port matches where your FastAPI app is running
+url = 'http://127.0.0.1:5000/getexpiration'  # Ensure the port matches where your FastAPI app is running
 
 # Define the headers
 headers = {
@@ -10,7 +10,7 @@ headers = {
 
 # Define the JSON body
 data = {
-    'foodtype': 'pizza'
+    'product': 'pizza'
 }
 
 # Make a POST request to the API with headers and JSON body
