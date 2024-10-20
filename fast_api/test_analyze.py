@@ -1,5 +1,5 @@
 import requests
-import base64
+import base64 #g
 
 def encode_image_to_base64(image_path):
     # Open the image file in binary mode
