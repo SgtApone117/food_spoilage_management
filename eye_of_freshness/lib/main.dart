@@ -1,13 +1,12 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:path/path.dart';
 import 'package:http/http.dart' as http;
-import 'package:image_picker/image_picker.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:http_parser/http_parser.dart';
 
 Future<String> getDirectory() async {
   if (kIsWeb) {
@@ -24,51 +23,11 @@ Future<String> getDirectory() async {
 }
 
 void main() async {
-  dotenv.load();
+  //dotenv.load();
   WidgetsFlutterBinding.ensureInitialized();
   final cameras = await availableCameras();
   runApp(MyApp(cameras: cameras));
 }
-
-
-// Future<void> analyzeImage(String base64Image) async {
-//   final String apiUrl = "https://vision.googleapis.com/v1/images:annotate?key=AIzaSyDhqy_8orlYewPBZn57hC0fFYDtEzrVI_8";
-
-//   try {
-//     final response = await http.post(
-//       Uri.parse(apiUrl),
-//       headers: {
-//         "Content-Type": "application/json",
-//       },
-//       body: json.encode({
-//         "requests": [
-//           {
-//             "image": {
-//               "content": base64Image, // The base64 encoded image string
-//             },
-//             "features": [
-//               {
-//                 "type": "LABEL_DETECTION", // You can use TEXT_DETECTION, OBJECT_DETECTION, etc.
-//                 "maxResults": 10,
-//               },
-//             ],
-//           },
-//         ],
-//       }),
-//     );
-
-//     if (response.statusCode == 200) {
-//       final data = json.decode(response.body);
-//       print("Labels detected: $data");
-//     } else {
-//       print("Error: ${response.statusCode}");
-//       print("Error message: ${response.reasonPhrase}");
-//       print("Error body: ${response.body}");
-//     }
-//   } catch (e) {
-//     print("Error: $e");
-//   }
-// }
 
 Future<String> analyzeImageWithSpoonacular(String base64Image, String apiKey) async {
   print(apiKey);
@@ -77,11 +36,9 @@ Future<String> analyzeImageWithSpoonacular(String base64Image, String apiKey) as
   final response = await http.post(
     Uri.parse(apiUrl),
     headers: {
-      "Content-Type": "application/json",
+      "Content-Type": "application/x-www-form-urlencoded",
     },
-    body: json.encode({
-      "image": base64Image,
-    }),
+    body: "image=$base64Image",
   );
 
   if (response.statusCode == 200) {
@@ -101,59 +58,150 @@ Future<String> analyzeImageWithSpoonacular(String base64Image, String apiKey) as
   }
 }
 
-Future<String> analyzeImage(String base64Image) async {
-  
-  
-  //final String apiUrl = dotenv.env['CLOUD_API_KEY']?? '';
-  final String foodApi = "bdcd020a5a6642efb52f80f13aa5c4b5";
+Image imageFromBase64String(String base64String) {
+  return Image.memory(base64Decode(base64String));
+}
+
+Uint8List dataFromBase64String(String base64String) {
+  return base64Decode(base64String);
+}
+
+String base64String(Uint8List data) {
+  return base64Encode(data);
+}
+
+List<String> foodKeywords = [
+  'food', 'fruit', 'vegetable', 'snack', 'drink', 'meat', 'dairy', 'bread', 'pasta', 'grain', 'seafood', 'beverage'
+];
+
+// Future<String> analyzeImage(String base64Image) async {
+//   //final String apiUrl = dotenv.env['CLOUD_API_KEY']?? '';
+//   final String foodApi = "bdcd020a5a6642efb52f80f13aa5c4b5";
+//   print(imageFromBase64String(base64Image));
+//   try {
+//     //get food type
+//     if(foodApi.isNotEmpty){
+//       final foodType = await analyzeImageWithSpoonacular(base64Image, foodApi);
+//       print(foodType);
+//       if(foodType == 'food'){
+//         return 'Food';
+//       }
+//       else{
+//         return 'Not a food';
+//       }
+//     }
+//     else{
+//       print('Food API key is missing');
+//       return 'Food API key is missing';
+//     }
+//   } 
+//   catch (e) {
+//     return 'Error: $e';
+//   }
+// }
+
+Future<void> analyzeImageWithLogMeal(String apiKey) async {
+  final apiUrl = "https://api.logmeal.com/v2/image/recognition/type";
+  var headers = {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer $apiKey',
+  };
+
+  final response = await http.MultipartRequest('POST', Uri.parse(apiUrl));
+  response.headers.addAll(headers);
+
+  // Use a correct file path, e.g. assets/pringles.jpg
+  var imgPath = '\assets\pringles.jpg';
   try {
-    //get food type
-    if(foodApi.isNotEmpty){
-      final foodType = await analyzeImageWithSpoonacular(base64Image, foodApi);
-      if(foodType == 'food'){
-        return 'Food';
-      }
-      else{
-        return 'Not a food';
-      }
-    }
-    else{
-      print('Food API key is missing');
-      return 'Food API key is missing';
-    }
+    response.files.add(
+      http.MultipartFile.fromBytes(
+        'image',
+        await File(imgPath).readAsBytes(),
+        filename: imgPath.split('/').last,
+        contentType: MediaType.parse('image/jpeg'), // or other mime type
+      ),
+    );
+  } catch (e) {
+    print('Error reading file: $e');
+    return;
   }
 
-  //   final response = await http.post(
-  //     Uri.parse(apiUrl),
-  //     headers: {
-  //       "Content-Type": "application/json",
-  //     },
-  //     body: json.encode({
-  //       "requests": [
-  //         {
-  //           "image": {
-  //             "content": base64Image, // The base64 encoded image string
-  //           },
-  //           "features": [
-  //             {
-  //               "type": "LABEL_DETECTION", // You can use TEXT_DETECTION, OBJECT_DETECTION, etc.
-  //               "maxResults": 10,
-  //             },
-  //           ],
-  //         },
-  //       ],
-  //     }),
-  //   );
+  try {
+    var res = await response.send();
 
-  //   if (response.statusCode == 200) {
-  //     final data = json.decode(response.body);
-  //     return data['responses'][0]['labelAnnotations'][0]['description'];
-  //   } else {
-  //     return 'Failed to detect object';
-  //   }
-  // } 
-  catch (e) {
-    return 'Error: $e';
+    // Check the response status code
+    if (res.statusCode == 200) {
+      print('Image uploaded successfully!');
+    } else {
+      print('Error uploading image: ${res.statusCode}');
+    }
+  } catch (e) {
+    print('Error sending request: $e');
+  }
+}
+
+
+Future<String> analyzeImage(String base64Image) async {
+  final String apiUrl = "https://vision.googleapis.com/v1/images:annotate?key=AIzaSyDhqy_8orlYewPBZn57hC0fFYDtEzrVI_8";
+
+  try {
+    final response = await http.post(
+      Uri.parse(apiUrl),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: json.encode({
+        "requests": [
+          {
+            "image": {
+              "content": base64Image,
+            },
+            "features": [
+              {
+                "type": "LABEL_DETECTION", 
+                "maxResults": 10,
+              },
+            ],
+          },
+        ],
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      List<dynamic> labels = data['responses'][0]['labelAnnotations'];
+
+// Find the best description
+String? bestDescription;
+double bestScore = 0;
+
+for (var label in labels) {
+  String description = label['description'].toLowerCase();
+  double score = label['score'];
+
+  if (foodKeywords.any((keyword) => description.contains(keyword))) {
+    if (score > bestScore) {
+      bestDescription = description;
+      bestScore = score;
+    }
+  }
+}
+
+// Check if any food-related labels were detected
+if (bestDescription!= null) {
+  print("Best food-related description: $bestDescription (Score: $bestScore)");
+  return bestDescription;
+} else {
+  print("No food-related objects detected.");
+  return "No food-related objects detected";
+}
+    } else {
+      print("Error: ${response.statusCode}");
+      return "Error: Unable to analyze image";
+    }
+  } catch (e) {
+    print("Exception: $e");
+    return "Error: $e";
   }
 }
 
@@ -261,6 +309,7 @@ class _SecondScreenState extends State<SecondScreen> {
             final directory = await getDirectory();
             String path = '$directory/${DateTime.now()}.png';
             _image = await _cameraController.takePicture();
+            print(_image!.path);
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -316,13 +365,15 @@ class _ThirdScreenState extends State<ThirdScreen> {
     );
   }
 
-  Future<void> _analyzeImage() async {
+ Future<void> _analyzeImage() async {
     final bytes = await widget.image.readAsBytes();
     final base64Image = base64Encode(bytes);
-    final detectedObject = await analyzeImage(base64Image);
-    setState(() {
-      _detectedObject = detectedObject;
-    });
+    //final detectedObject = await analyzeImage(base64Image);
+    //final detectedObject = await analyzeImageWithLogMeal('5157e56c73ccbbc0aa0275d6a4a859c73daa229b');
+    await analyzeImageWithLogMeal('5157e56c73ccbbc0aa0275d6a4a859c73daa229b');
+    // setState(() {
+    //   _detectedObject = detectedObject;
+    // });
   }
 }
 
