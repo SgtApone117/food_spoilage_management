@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:eye_of_freshness/globals.dart' as globals;
@@ -15,12 +16,15 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  CameraController? _cameraController;
+  List<CameraDescription> cameras = [];
   int _selectedIndex = 1;
   String bruh = "";
 
   @override
   initState() {
     super.initState();
+    prepareCamera();
     getStart();
   }
 
@@ -28,6 +32,27 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _selectedIndex = index;
     });
+  }
+
+  // Prepare the camera when the app starts
+  Future<void> prepareCamera() async {
+    try {
+      cameras = await availableCameras(); // Get the list of available cameras
+
+      if (cameras.isNotEmpty) {
+        _cameraController = CameraController(
+          cameras[0], // Use the first available camera
+          ResolutionPreset.high, // Set resolution to high
+        );
+
+        await _cameraController!.initialize(); // Initialize the camera
+        setState(() {});
+      } else {
+        print("No cameras available");
+      }
+    } catch (e) {
+      print("Error initializing camera: $e");
+    }
   }
 
   getStart() async {
@@ -102,20 +127,27 @@ class _HomePageState extends State<HomePage> {
                         ],
                       ));
               } else if (_selectedIndex == 1) {
-                if (bruh == ""){
-                  return Container(
-                      padding: const EdgeInsets.all(40),
-                      child: Column(
-                        children: [
-                          Center(
-                              child: CircularProgressIndicator(
-                                color: Color(globals.appColor),
-                              )),
-                        ],
-                      ));
+                if (_cameraController != null && _cameraController!.value.isInitialized) { // bruh
+                  return CameraPreview(_cameraController!); // Show camera preview // bruh
+                } else { // bruh
+                  return const Center( // bruh
+                    child: CircularProgressIndicator(), // bruh
+                  );
                 }
-                return Container(
-                    child: Text(bruh));
+                // if (bruh == ""){
+                //   return Container(
+                //       padding: const EdgeInsets.all(40),
+                //       child: Column(
+                //         children: [
+                //           Center(
+                //               child: CircularProgressIndicator(
+                //                 color: Color(globals.appColor),
+                //               )),
+                //         ],
+                //       ));
+                // }
+                // return Container(
+                //     child: Text(bruh));
               } else {
                 return Container(
                     padding: const EdgeInsets.all(40),
@@ -165,5 +197,11 @@ class _HomePageState extends State<HomePage> {
               onTap: _onItemTapped,
             );
         }));
+  }
+
+  @override
+  void dispose() { // bruh
+    _cameraController?.dispose(); // Dispose of the camera controller // bruh
+    super.dispose(); // bruh
   }
 }
