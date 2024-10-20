@@ -21,14 +21,15 @@ class _HomePageState extends State<HomePage> {
   CameraController? _cameraController;
   List<CameraDescription> cameras = [];
   int _selectedIndex = 1;
-  String bruh = "";
+  String food_item_name = "";
+  int expiration_max = 0;
+  int expiration_min = 0;
   XFile? imageFile;
 
   @override
   initState() {
     super.initState();
     prepareCamera();
-    getStart();
   }
 
   void _onItemTapped(int index) {
@@ -69,9 +70,9 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void retakePhoto() { // bruh
-    setState(() { // bruh
-      imageFile = null; // Reset the image file to show the camera preview again // bruh
+  void retakePhoto() {
+    setState(() {
+      imageFile = null; // Reset the image file to show the camera preview again
     });
   }
 
@@ -92,9 +93,10 @@ class _HomePageState extends State<HomePage> {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
 
-      print(data);
       setState(() {
-        bruh = data['vision_response']['responses'][0]['labelAnnotations'][0]['description'];
+        food_item_name = data['food_item'] == "-" ? "Not a food" : data['food_item'];
+        expiration_max = data['expiration_max'];
+        expiration_min = data['expiration_min'];
       });
       // Extract the product type and expiration date from the vision_response
       // String productType = data['vision_response']['responses'][0]['labelAnnotations'][0]['description'];
@@ -104,49 +106,6 @@ class _HomePageState extends State<HomePage> {
       // await DatabaseHelper().insertProduct(productType, expirationDate);
     } else {
       throw Exception('Failed to send image');
-    }
-  }
-
-  getStart() async {
-    print("bruh");
-    print("bruh");
-    FoodItem foodItem = FoodItem(foodtype: "pizza");
-    final url = Uri.parse('${globals.backendIP}analyze'); // FastAPI backend URL
-    final headers = {'Content-Type': 'application/json'};
-    final body = jsonEncode(foodItem.toJson()); // Convert FoodItem to JSON
-
-    final response = await http.post(url, headers: headers, body: body);
-    // print(response.statusCode);
-    // final data = jsonDecode(response.body);
-    // print(data);
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-
-      // for (Map<String, dynamic> item in data) {
-      //   if (["j", "k"].contains(foodGroup.fineGroupId)) {
-      //     if (item["value"] > 0.501) {
-      //       if (item["notes"] != "") {
-      //         foodItemsHelpful
-      //             .add(item["foodItemDisplayAs"] + ": " + item["notes"]);
-      //       } else {
-      //         foodItemsHelpful.add(item["foodItemDisplayAs"]);
-      //       }
-      //     }
-      //   } else {
-      //     if (item["notes"] != "") {
-      //       foodItemsHelpful
-      //           .add(item["foodItemDisplayAs"] + ": " + item["notes"]);
-      //     } else {
-      //       foodItemsHelpful.add(item["foodItemDisplayAs"]);
-      //     }
-      //   }
-      // }
-      setState(() {
-        bruh = data['foodtype'];
-      });
-    } else {
-      throw Exception('Failed to load start.');
     }
   }
 
@@ -169,9 +128,11 @@ class _HomePageState extends State<HomePage> {
                     padding: const EdgeInsets.all(40),
                     child: Column(
                       children: [
-                        if (bruh != "")
-                        Text(bruh),
-                        if (bruh == "")
+                        if (food_item_name != "")
+                        Text(food_item_name),
+                        if (food_item_name != "" && food_item_name != "Not a food")
+                        Text("Will be expired in : " + expiration_min.toString() + "-" + expiration_max.toString() + " days."),
+                        if (food_item_name == "")
                         Center(
                             child: CircularProgressIndicator(
                           color: Color(globals.appColor),
@@ -185,62 +146,62 @@ class _HomePageState extends State<HomePage> {
                         null) // Show camera preview before image capture
                       Container(
                         width: double.infinity,
-                        child: CameraPreview(_cameraController!), // bruh
-                      ), // bruh
+                        child: CameraPreview(_cameraController!),
+                      ),
                     if (imageFile !=
                         null) // Show captured image after image is taken
                       Image.file(
-                        // bruh
-                        File(imageFile!.path), // bruh
-                        width: double.infinity, // bruh
-                        fit: BoxFit.cover, // bruh
+
+                        File(imageFile!.path),
+                        width: double.infinity,
+                        fit: BoxFit.cover,
                       ),
                     Positioned(
-                      // bruh
-                      bottom: 50, // bruh
-                      left: 0, // bruh
-                      right: 0, // bruh
+
+                      bottom: 50,
+                      left: 0,
+                      right: 0,
                       child: Row(
-                        // bruh
+
                         mainAxisAlignment: (imageFile == null ? MainAxisAlignment.center :MainAxisAlignment.spaceBetween),
-                        // Spread buttons to left and right // bruh
+                        // Spread buttons to left and right
                         children: [
-                          // bruh
+
                           if (imageFile !=
-                              null) // Show "Retake" button if image is taken // bruh
+                              null) // Show "Retake" button if image is taken
                             Padding(
-                              // bruh
+
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 20), // bruh
+                                  horizontal: 20),
                               child: ElevatedButton(
-                                // bruh
-                                onPressed: retakePhoto, // Retake photo // bruh
-                                child: const Text('Retake'), // bruh
+
+                                onPressed: retakePhoto, // Retake photo
+                                child: const Text('Retake'),
                               ),
                             ),
                           if (imageFile ==
-                              null) // Show capture button if no image is taken // bruh
+                              null) // Show capture button if no image is taken
                             FloatingActionButton(
-                              // bruh
+
                               onPressed: () async {
-                                // bruh
-                                await captureImage(); // Capture image // bruh
+
+                                await captureImage(); // Capture image
                               },
-                              child: const Icon(Icons.camera), // bruh
+                              child: const Icon(Icons.camera),
                             ),
                           if (imageFile !=
-                              null) // Show "Send" button if image is taken // bruh
+                              null) // Show "Send" button if image is taken
                             Padding(
-                              // bruh
+
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 20), // bruh
+                                  horizontal: 20),
                               child: ElevatedButton(
-                                // bruh
+
                                 onPressed: () async {
-                                  // bruh
-                                  await sendImage(imageFile!); // Send captured image to API // bruh
+
+                                  await sendImage(imageFile!); // Send captured image to API
                                 },
-                                child: const Text('Send to API'), // bruh
+                                child: const Text('Send to API'),
                               ),
                             ),
                         ],
@@ -316,8 +277,8 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
-    // bruh
-    _cameraController?.dispose(); // Dispose of the camera controller // bruh
-    super.dispose(); // bruh
+
+    _cameraController?.dispose(); // Dispose of the camera controller
+    super.dispose();
   }
 }

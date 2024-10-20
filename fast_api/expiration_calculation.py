@@ -1,8 +1,12 @@
+import json
+
 from flask import Flask, request, jsonify
 import requests
 
 # Define the URL of the Google Vision API
-url = 'https://vision.googleapis.com/v1/images:annotate?key=AIzaSyDhqy_8orlYewPBZn57hC0fFYDtEzrVI_8'  # Replace with your actual API key
+google_vision_url = 'bruh'
+API_KEY = 'bruh'
+API_ENDPOINT = 'bruh'
 
 # Define the headers for the Google Vision API
 headers = {
@@ -48,18 +52,60 @@ def analyze_image():
     }
 
     # Make a POST request to the Google Vision API
-    response = requests.post(url, headers=headers, json=vision_data)
+    response = requests.post(google_vision_url, headers={'Content-Type': 'application/json'}, json=vision_data)
 
     # Check if the request was successful
     if response.status_code == 200:
         # Parse the response from Google Vision API
         vision_response = response.json()
+        vision_response_str = json.dumps(vision_response)
 
-        # Return the response from Google Vision API to the client
-        return jsonify({
-            "message": "Image analysis complete",
-            "vision_response": vision_response  # Include the actual response from Google Vision API
-        })
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {API_KEY}'
+        }
+
+        # Define the request payload
+        payload = {
+            "model": "gpt-3.5-turbo",  # Replace with the model name you want to use
+            "messages": [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user",
+                 "content":
+                     f"Here is google vision api response: {vision_response_str}" +
+                     " select food item with highest probability and give it's typical expiration date" +
+                     " Return your answer as JSON with the following format: {'food_item': food_item_name, 'expiration': {'min': number, 'max': number}} " +
+                     "where min and max are the maximum expiration time in days from the date of purchase. Return ONLY the JSON result. " +
+                    "if the food item is not found return your answer as JSON with the following format: {'food_item': '-', 'expiration': {'min': 0, 'max': 0}} " +
+                 "do not change or add additional information to your answer!"
+                 },
+            ],
+            "max_tokens": 200  # Adjust the number of tokens as needed
+        }
+
+        # Send the request
+        response = requests.post(API_ENDPOINT, headers=headers, json=payload)
+
+        if response.status_code == 200:
+            response_data = response.json()
+            food_item_str = response_data['choices'][0]['message']['content'].replace('```json', '').replace('```', '').strip()
+            food_item_info = json.loads(food_item_str)
+            print("Response:", food_item_info)
+            return jsonify({
+                "message": "Image analysis complete",
+                "food_item": food_item_info['food_item'],
+                "expiration_min": food_item_info['expiration']["min"],
+                "expiration_max": food_item_info['expiration']["max"]
+                # Include the actual response from Google Vision API
+            })
+        else:
+            print("Error:", response.status_code, response.text)
+            return jsonify({
+                "error": "Image analysis failed",
+                "status_code": response.status_code,
+                "response": response.text
+            }), response.status_code
+
     else:
         # If the request to Google Vision API fails, return an error message
         return jsonify({
