@@ -4,8 +4,10 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:eye_of_freshness/globals.dart' as globals;
+import 'package:intl/intl.dart';
 import 'package:path/path.dart';
 
+import 'database_helper.dart';
 import 'model/FoodItem.dart';
 
 class HomePage extends StatefulWidget {
@@ -18,6 +20,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  late Future<List<Map<String, dynamic>>> _foodItemsFuture;
   CameraController? _cameraController;
   List<CameraDescription> cameras = [];
   int _selectedIndex = 1;
@@ -30,6 +33,12 @@ class _HomePageState extends State<HomePage> {
   initState() {
     super.initState();
     prepareCamera();
+    _initializeDatabase();
+    _loadFoodItems();
+  }
+
+  Future<void> _initializeDatabase() async {
+    await DatabaseHelper().database;
   }
 
   void _onItemTapped(int index) {
@@ -77,6 +86,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> sendImage(XFile image) async {
+    setState(() {
+      food_item_name = "";
+      expiration_max = 0;
+      expiration_min = 0;
+    });
+
     final bytes = await image.readAsBytes(); // Read the image as bytes
     String base64Image = base64Encode(bytes); // Convert bytes to Base64
 
@@ -90,23 +105,55 @@ class _HomePageState extends State<HomePage> {
 
     final response = await http.post(url, headers: headers, body: body);
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
+    // bruh bruh bruh bruh bruh bruh
+    setState(() {
+      _selectedIndex = 0;
+      food_item_name = "Mockfood";
+      expiration_max = 14;
+      expiration_min = 7;
+    });
 
-      setState(() {
-        food_item_name = data['food_item'] == "-" ? "Not a food" : data['food_item'];
-        expiration_max = data['expiration_max'];
-        expiration_min = data['expiration_min'];
-      });
-      // Extract the product type and expiration date from the vision_response
-      // String productType = data['vision_response']['responses'][0]['labelAnnotations'][0]['description'];
-      // String expirationDate = '2024-12-31'; // Replace with logic to determine expiration date
+    // if (response.statusCode == 200) {
+    //   final data = jsonDecode(response.body);
+    //
+    //   setState(() {
+    //     food_item_name = data['food_item'] == "-" ? "Not a food" : data['food_item'];
+    //     expiration_max = data['expiration_max'];
+    //     expiration_min = data['expiration_min'];
+    //   });
+    //
+    //   // Save to local database
+    // await saveToDatabase(food_item_name, expiration_min, expiration_max);
+    // } else {
+    //   throw Exception('Failed to send image');
+    // }
+  }
 
-      // Save to local database
-      // await DatabaseHelper().insertProduct(productType, expirationDate);
-    } else {
-      throw Exception('Failed to send image');
-    }
+  void _loadFoodItems() {
+    setState(() {
+      _foodItemsFuture = DatabaseHelper().getSortedFoodItems();
+      print("bruh _foodItemsFuture");
+      print(_foodItemsFuture);
+    });
+  }
+
+  Future<void> _saveFoodItem(String name, int minDays, int maxDays) async {
+    print("bruh");
+    print("bruh");
+    print("bruh");
+    print(name +" "+ minDays.toString() +" "+ maxDays.toString());
+    await DatabaseHelper().insertFoodItem(name, minDays, maxDays);
+    print("bruh");
+    print("bruh");
+    _loadFoodItems();
+    print("bruh1");
+    print("bruh");
+  }
+
+  String calculateExpirationDate(String dateReceived, int daysToAdd) {
+    DateTime receivedDate = DateTime.parse(dateReceived);
+    DateTime expirationDate = receivedDate.add(Duration(days: daysToAdd));
+    return expirationDate.toLocal().toString().split(' ')[0]; // Returns only the date part
   }
 
   @override
@@ -137,6 +184,25 @@ class _HomePageState extends State<HomePage> {
                             child: CircularProgressIndicator(
                           color: Color(globals.appColor),
                         )),
+                        if (food_item_name != "" && food_item_name != "Not a food")
+                          Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              // Spread buttons to left and right
+                              children: [
+                                if (imageFile !=
+                                    null) // Show "Send" button if image is taken
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20),
+                                    child: ElevatedButton(
+                                      onPressed: () async {
+                                        await _saveFoodItem(food_item_name, expiration_min, expiration_max);
+                                      },
+                                      child: const Text('Save'),
+                                    ),
+                                  ),
+                              ],
+                            ),
                       ],
                     ));
               } else if (_selectedIndex == 1) {
@@ -225,17 +291,99 @@ class _HomePageState extends State<HomePage> {
                 // return Container(
                 //     child: Text(bruh));
               } else {
-                return Container(
-                    padding: const EdgeInsets.all(40),
-                    child: Column(
-                      children: [
-                        Center(
-                            child: CircularProgressIndicator(
-                          color: Color(globals.appColor),
-                        )),
-                      ],
-                    ));
-              }
+                // return FutureBuilder<List<Map<String, dynamic>>>(
+                //   future: DatabaseHelper().getSortedFoodItems(),
+                //   builder: (context, snapshot) {
+                //     if (snapshot.connectionState == ConnectionState.waiting) {
+                //       return Container(
+                //         padding: const EdgeInsets.all(40),
+                //         child: Center(
+                //           child: CircularProgressIndicator(
+                //             color: Color(globals.appColor),
+                //           ),
+                //         ),
+                //       );
+                //     }
+                //
+                //     if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                //       return Container(
+                //         padding: const EdgeInsets.all(40),
+                //         child: Center(
+                //           child: Text('No items found'),
+                //         ),
+                //       );
+                //     }
+                //
+                //     final foodItems = snapshot.data!;
+                //
+                //     return Container(
+                //       padding: const EdgeInsets.all(40),
+                //       child: Column(
+                //         children: [
+                //           Expanded(
+                //             child: ListView.builder(
+                //               itemCount: foodItems.length,
+                //               itemBuilder: (context, index) {
+                //                 final item = foodItems[index];
+                //                 String expirationMinDate = DateFormat('yyyy-MM-dd').format(item['calculated_expiration_min']);
+                //                 String expirationMaxDate = calculateExpirationDate(item['date_received'], item['expiration_max']);
+                //
+                //                 return ListTile(
+                //                   title: Text(item['name']),
+                //                   subtitle: Text('Expires between $expirationMinDate and $expirationMaxDate'),
+                //                 );
+                //               },
+                //             ),
+                //           ),
+                //         ],
+                //       ),
+                //     );
+                //   },
+                // );
+                return FutureBuilder<List<Map<String, dynamic>>>(
+                  future: _foodItemsFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Container(
+                        padding: const EdgeInsets.all(40),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: Color(globals.appColor),
+                          ),
+                        ),
+                      );
+                    }
+
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return Container(
+                        padding: const EdgeInsets.all(40),
+                        child: Center(
+                          child: Text('No items found'),
+                        ),
+                      );
+                    }
+
+                    final foodItems = snapshot.data!;
+
+                    return Container(
+                      padding: const EdgeInsets.all(40),
+                      child: ListView.builder(
+                        itemCount: foodItems.length,
+                        itemBuilder: (context, index) {
+                          final item = foodItems[index];
+                          String expirationMinDate = DateFormat('yyyy-MM-dd').format(item['calculated_expiration_min']);
+                          String expirationMaxDate = calculateExpirationDate(item['date_received'], item['expiration_max']);
+
+                          return ListTile(
+                            title: Text(item['name']),
+                            subtitle: Text('Expires between $expirationMinDate and $expirationMaxDate'),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                );
+          }
             }
           },
         )),
