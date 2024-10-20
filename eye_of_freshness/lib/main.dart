@@ -1,110 +1,34 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:eye_of_freshness/globals.dart' as globals;
+
+import 'home.dart';
 
 
 void main() {
   runApp(MyApp());
 }
 
-Future<void> analyzeImage(String base64Image) async {
-  final String apiUrl = "https://vision.googleapis.com/v1/images:annotate?key=AIzaSyDOjr-iNMaeCTLPNmRt6Gze19wusGtL2U0s";
-
-  final response = await http.post(
-    Uri.parse(apiUrl),
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: json.encode({
-      "requests": [
-        {
-          "image": {
-            "content": base64Image, // The base64 encoded image string
-          },
-          "features": [
-            {
-              "type": "LABEL_DETECTION", // You can use TEXT_DETECTION, OBJECT_DETECTION, etc.
-              "maxResults": 10,
-            },
-          ],
-        },
-      ],
-    }),
-  );
-
-  if (response.statusCode == 200) {
-    final data = json.decode(response.body);
-    print("Labels detected: $data");
-  } else {
-    print("Error: ${response.statusCode}");
-  }
-}
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  // This widget is the root of application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text("Flutter and FastAPI"),
-        ),
-        body: Center(
-          child: FutureBuilder<String>(
-            future: sendFoodType(FoodItem(foodtype: "pizza")), // Pass FoodItem here
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const CircularProgressIndicator();
-              } else if (snapshot.hasError) {
-                return Text("Error: ${snapshot.error}");
-              } else {
-                return Text(snapshot.data ?? "No message");
-              }
-            },
-          ),
-        ),
-      ),
-    );
+            debugShowCheckedModeBanner: false,
+            title: 'Eye of freshness',
+            theme: ThemeData(
+              fontFamily: "Lexend",
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: const Color(0xFF004C93),
+                background: const Color(0xFFF9F9F9),
+              ),
+              useMaterial3: true,
+            ),
+            home: const HomePage(),
+          );
   }
 }
 
-class FoodItem {
-  final String foodtype;
-
-  FoodItem({required this.foodtype});
-
-  // Factory method to create a FoodItem object from a JSON map
-  factory FoodItem.fromJson(Map<String, dynamic> json) {
-    return FoodItem(
-      foodtype: json['foodtype'],
-    );
-  }
-
-  // Method to convert FoodItem object to JSON
-  Map<String, dynamic> toJson() {
-    return {
-      'foodtype': foodtype,
-    };
-  }
-}
-
-Future<String> sendFoodType(FoodItem foodItem) async {
-  final url = Uri.parse('http://127.0.0.1:8000/start'); // FastAPI backend URL
-  final headers = {'Content-Type': 'application/json'};
-  final body = jsonEncode(foodItem.toJson()); // Convert FoodItem to JSON
-
-  try {
-    final response = await http.post(url, headers: headers, body: body);
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['message']; // Returns the message received from FastAPI
-    } else {
-      return 'Failed to load message: ${response.statusCode}';
-    }
-  } catch (e) {
-    // Handle any errors like connection issues
-    return 'Error: $e';
-  }
-}
