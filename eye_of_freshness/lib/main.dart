@@ -30,7 +30,8 @@ void main() async {
 
 
 Future<void> analyzeImage(String base64Image) async {
-  final String apiUrl = "https://vision.googleapis.com/v1/images:annotate?key=";
+  // replace this with the python host link
+  const String apiUrl = "https://vision.googleapis.com/v1/images:annotate?key=";
 
   try {
     final response = await http.post(
@@ -41,15 +42,7 @@ Future<void> analyzeImage(String base64Image) async {
       body: json.encode({
         "requests": [
           {
-            "image": {
-              "content": base64Image, // The base64 encoded image string
-            },
-            "features": [
-              {
-                "type": "LABEL_DETECTION", // You can use TEXT_DETECTION, OBJECT_DETECTION, etc.
-                "maxResults": 10,
-              },
-            ],
+            "image": base64Image // The base64 encoded image string
           },
         ],
       }),
@@ -71,7 +64,7 @@ Future<void> analyzeImage(String base64Image) async {
 class MyApp extends StatelessWidget {
   final List<CameraDescription> cameras;
 
-  MyApp({required this.cameras});
+  const MyApp({super.key, required this.cameras});
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +78,7 @@ class MyApp extends StatelessWidget {
 class FirstScreen extends StatelessWidget {
   final List<CameraDescription> cameras;
 
-  FirstScreen({required this.cameras});
+  const FirstScreen({super.key, required this.cameras});
 
   @override
   Widget build(BuildContext context) {
@@ -94,16 +87,16 @@ class FirstScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
+            const Text(
               'Hi, Guest',
               style: TextStyle(fontSize: 24),
             ),
-            SizedBox(height: 20),
-            CircleAvatar(
+            const SizedBox(height: 20),
+            const CircleAvatar(
               backgroundImage: AssetImage('assets/profile_default.jpg'),
               radius: 50,
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
                 Navigator.push(
@@ -112,7 +105,7 @@ class FirstScreen extends StatelessWidget {
                       builder: (context) => SecondScreen(cameras: cameras)),
                 );
               },
-              child: Text('Scan'),
+              child: const Text('Scan'),
             ),
           ],
         ),
@@ -124,7 +117,7 @@ class FirstScreen extends StatelessWidget {
 class SecondScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
 
-  SecondScreen({required this.cameras});
+  const SecondScreen({super.key, required this.cameras});
 
   @override
   _SecondScreenState createState() => _SecondScreenState();
@@ -149,7 +142,7 @@ class _SecondScreenState extends State<SecondScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Take a Picture'),
+        title: const Text('Take a Picture'),
       ),
       body: FutureBuilder(
         future: _initializeControllerFuture,
@@ -161,7 +154,7 @@ class _SecondScreenState extends State<SecondScreen> {
               ],
             );
           } else {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
         },
       ),
@@ -181,7 +174,7 @@ class _SecondScreenState extends State<SecondScreen> {
             print(e);
           }
         },
-        child: Icon(Icons.camera),
+        child: const Icon(Icons.camera),
       ),
     );
   }
@@ -190,32 +183,32 @@ class _SecondScreenState extends State<SecondScreen> {
 class ThirdScreen extends StatelessWidget {
   final XFile image;
 
-  ThirdScreen({required this.image});
+  const ThirdScreen({super.key, required this.image});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Clicked Picture'),
+        title: const Text('Clicked Picture'),
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             kIsWeb? Image.network(image.path) : Image.file(File(image.path)),
-            SizedBox(height: 20),
-            Text(
+            const SizedBox(height: 20),
+            const Text(
               'You clicked a picture',
               style: TextStyle(fontSize: 24),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
                 final bytes = await image.readAsBytes();
                 final base64Image = base64Encode(bytes);
                 await analyzeImage(base64Image);
               },
-              child: Text('Analyze Image'),
+              child: const Text('Analyze Image'),
             ),
           ],
         ),
