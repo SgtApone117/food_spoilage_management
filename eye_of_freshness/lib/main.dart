@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:path_provider/path_provider.dart';
 
 Future<String> getDirectory() async {
@@ -23,48 +24,136 @@ Future<String> getDirectory() async {
 }
 
 void main() async {
+  dotenv.load();
   WidgetsFlutterBinding.ensureInitialized();
   final cameras = await availableCameras();
   runApp(MyApp(cameras: cameras));
 }
 
 
-Future<void> analyzeImage(String base64Image) async {
-  final String apiUrl = "https://vision.googleapis.com/v1/images:annotate?key=";
+// Future<void> analyzeImage(String base64Image) async {
+//   final String apiUrl = "https://vision.googleapis.com/v1/images:annotate?key=AIzaSyDhqy_8orlYewPBZn57hC0fFYDtEzrVI_8";
 
-  try {
-    final response = await http.post(
-      Uri.parse(apiUrl),
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: json.encode({
-        "requests": [
-          {
-            "image": {
-              "content": base64Image, // The base64 encoded image string
-            },
-            "features": [
-              {
-                "type": "LABEL_DETECTION", // You can use TEXT_DETECTION, OBJECT_DETECTION, etc.
-                "maxResults": 10,
-              },
-            ],
-          },
-        ],
-      }),
-    );
+//   try {
+//     final response = await http.post(
+//       Uri.parse(apiUrl),
+//       headers: {
+//         "Content-Type": "application/json",
+//       },
+//       body: json.encode({
+//         "requests": [
+//           {
+//             "image": {
+//               "content": base64Image, // The base64 encoded image string
+//             },
+//             "features": [
+//               {
+//                 "type": "LABEL_DETECTION", // You can use TEXT_DETECTION, OBJECT_DETECTION, etc.
+//                 "maxResults": 10,
+//               },
+//             ],
+//           },
+//         ],
+//       }),
+//     );
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      print("Labels detected: $data");
+//     if (response.statusCode == 200) {
+//       final data = json.decode(response.body);
+//       print("Labels detected: $data");
+//     } else {
+//       print("Error: ${response.statusCode}");
+//       print("Error message: ${response.reasonPhrase}");
+//       print("Error body: ${response.body}");
+//     }
+//   } catch (e) {
+//     print("Error: $e");
+//   }
+// }
+
+Future<String> analyzeImageWithSpoonacular(String base64Image, String apiKey) async {
+  print(apiKey);
+  final String apiUrl = "https://api.spoonacular.com/food/images/classify?apiKey=$apiKey";
+
+  final response = await http.post(
+    Uri.parse(apiUrl),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: json.encode({
+      "image": base64Image,
+    }),
+  );
+
+  if (response.statusCode == 200) {
+    final data = json.decode(response.body);
+    bool isFood = data['category'] == 'food';
+
+    if (isFood) {
+      print("This is a food product.");
+      return data['category'];
     } else {
-      print("Error: ${response.statusCode}");
-      print("Error message: ${response.reasonPhrase}");
-      print("Error body: ${response.body}");
+      print("This is NOT a food product.");
+      return "Error: Image is not a food product";
     }
-  } catch (e) {
-    print("Error: $e");
+  } else {
+    print("Error: ${response.statusCode}");
+    return "Error: Unable to classify image";
+  }
+}
+
+Future<String> analyzeImage(String base64Image) async {
+  
+  
+  //final String apiUrl = dotenv.env['CLOUD_API_KEY']?? '';
+  final String foodApi = "bdcd020a5a6642efb52f80f13aa5c4b5";
+  try {
+    //get food type
+    if(foodApi.isNotEmpty){
+      final foodType = await analyzeImageWithSpoonacular(base64Image, foodApi);
+      if(foodType == 'food'){
+        return 'Food';
+      }
+      else{
+        return 'Not a food';
+      }
+    }
+    else{
+      print('Food API key is missing');
+      return 'Food API key is missing';
+    }
+  }
+
+  //   final response = await http.post(
+  //     Uri.parse(apiUrl),
+  //     headers: {
+  //       "Content-Type": "application/json",
+  //     },
+  //     body: json.encode({
+  //       "requests": [
+  //         {
+  //           "image": {
+  //             "content": base64Image, // The base64 encoded image string
+  //           },
+  //           "features": [
+  //             {
+  //               "type": "LABEL_DETECTION", // You can use TEXT_DETECTION, OBJECT_DETECTION, etc.
+  //               "maxResults": 10,
+  //             },
+  //           ],
+  //         },
+  //       ],
+  //     }),
+  //   );
+
+  //   if (response.statusCode == 200) {
+  //     final data = json.decode(response.body);
+  //     return data['responses'][0]['labelAnnotations'][0]['description'];
+  //   } else {
+  //     return 'Failed to detect object';
+  //   }
+  // } 
+  catch (e) {
+    return 'Error: $e';
   }
 }
 
@@ -187,10 +276,23 @@ class _SecondScreenState extends State<SecondScreen> {
   }
 }
 
-class ThirdScreen extends StatelessWidget {
+class ThirdScreen extends StatefulWidget {
   final XFile image;
 
   ThirdScreen({required this.image});
+
+  @override
+  _ThirdScreenState createState() => _ThirdScreenState();
+}
+
+class _ThirdScreenState extends State<ThirdScreen> {
+  String? _detectedObject;
+
+  @override
+  void initState() {
+    super.initState();
+    _analyzeImage();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -202,27 +304,29 @@ class ThirdScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            kIsWeb? Image.network(image.path) : Image.file(File(image.path)),
+            kIsWeb? Image.network(widget.image.path) : Image.file(File(widget.image.path)),
             SizedBox(height: 20),
             Text(
-              'You clicked a picture',
+              _detectedObject?? 'Analyzing image...',
               style: TextStyle(fontSize: 24),
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () async {
-                final bytes = await image.readAsBytes();
-                final base64Image = base64Encode(bytes);
-                await analyzeImage(base64Image);
-              },
-              child: Text('Analyze Image'),
             ),
           ],
         ),
       ),
     );
   }
+
+  Future<void> _analyzeImage() async {
+    final bytes = await widget.image.readAsBytes();
+    final base64Image = base64Encode(bytes);
+    final detectedObject = await analyzeImage(base64Image);
+    setState(() {
+      _detectedObject = detectedObject;
+    });
+  }
 }
+
+
 
 class FoodItem {
   final String foodtype;
