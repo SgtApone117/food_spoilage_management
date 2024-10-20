@@ -55,6 +55,14 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^3.0.0
 
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/FreshEye_Logo.png"
+  adaptive_icon_background: "#ffffff"
+  adaptive_logo_foreground: "assets/FreshEye_Logo.png"
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
