@@ -1,6 +1,6 @@
 {
-    "name": "eye_of_freshness",
-    "short_name": "eye_of_freshness",
+    "name": "hello_world",
+    "short_name": "hello_world",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
