@@ -11,6 +11,7 @@ headers = {
 # Define the JSON body
 data = {
     'product': 'pizza'
+    'expiration'
 }
 
 # Make a POST request to the API with headers and JSON body

@@ -1,42 +1,28 @@
-from fastapi import FastAPI, status
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse
-from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi import FastAPI
 from pydantic import BaseModel
-from starlette.middleware.cors import CORSMiddleware
-import uvicorn
+import httpx  
 
-# Create FastAPI app instance
-app = FastAPI(debug=True, docs_url=None, redoc_url=None)
-app.mount("/static", StaticFiles(directory="static", html=True))
+app = FastAPI()
 
-#Apparently fixes some CORS issue
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
-    allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
-    allow_headers=["*"],  # Allows all headers
-)
+class ProductRequest(BaseModel):
+    product: str
 
-# Custom Swagger documentation endpoint
-@app.get("/docs", include_in_schema=False)
-async def custom_swagger_ui_html():
-    return get_swagger_ui_html(
-        openapi_url=app.openapi_url,
-        title=app.title + " - Swagger UI",
-        oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
-        swagger_js_url="static/swagger-ui-bundle.js",
-        swagger_css_url="static/swagger-ui.css",
-    )
-class FoodRequest(BaseModel):
-    foodtype: str
+# This route in FastAPI will forward the request to Flask's /getexpiration route
+@app.post("/checkexpiration")
+async def check_expiration(product_request: ProductRequest):
+    # The product sent from the client (Flutter app)
+    product = product_request.product
 
-@app.post("/start")
-def start(food_request: FoodRequest):
-    # Return a JSON response with the foodtype
-    return JSONResponse(content={"foodtype": food_request.foodtype})
+    # Flask URL where we'll forward the request
+    flask_url = "http://127.0.0.1:5000/getexpiration"
+
+    # Make an asynchronous POST request to the Flask API
+    async with httpx.AsyncClient() as client:
+        response = await client.post(flask_url, json={"product": product})
+
+    # Return the Flask response to the FastAPI client
+    return response.json()
 
 @app.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "FastAPI is forwarding requests to Flask!"}
