@@ -106,24 +106,24 @@ class _HomePageState extends State<HomePage> {
     final response = await http.post(url, headers: headers, body: body);
 
     // // bruh bruh bruh bruh bruh bruh
-    setState(() {
-      _selectedIndex = 0;
-      food_item_name = "Mockfood";
-      expiration_max = 14;
-      expiration_min = 7;
-    });
+    // setState(() {
+    //   _selectedIndex = 0;
+    //   food_item_name = "Mockfood";
+    //   expiration_max = 14;
+    //   expiration_min = 7;
+    // });
 
-    // if (response.statusCode == 200) {
-    //   final data = jsonDecode(response.body);
-    //
-    //   setState(() {
-    //     food_item_name = data['food_item'] == "-" ? "Not a food" : data['food_item'];
-    //     expiration_max = data['expiration_max'];
-    //     expiration_min = data['expiration_min'];
-    //   });
-    // } else {
-    //   throw Exception('Failed to send image');
-    // }
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      setState(() {
+        food_item_name = data['food_item'] == "-" ? "Not a food" : data['food_item'];
+        expiration_max = data['expiration_max'];
+        expiration_min = data['expiration_min'];
+      });
+    } else {
+      throw Exception('Failed to send image');
+    }
   }
 
   void _loadFoodItems() {
