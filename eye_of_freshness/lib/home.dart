@@ -106,24 +106,24 @@ class _HomePageState extends State<HomePage> {
     final response = await http.post(url, headers: headers, body: body);
 
     // // bruh bruh bruh bruh bruh bruh
-    // setState(() {
-    //   _selectedIndex = 0;
-    //   food_item_name = "Mockfood";
-    //   expiration_max = 14;
-    //   expiration_min = 7;
-    // });
+    setState(() {
+      _selectedIndex = 0;
+      food_item_name = "Mockfood";
+      expiration_max = 14;
+      expiration_min = 7;
+    });
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-
-      setState(() {
-        food_item_name = data['food_item'] == "-" ? "Not a food" : data['food_item'];
-        expiration_max = data['expiration_max'];
-        expiration_min = data['expiration_min'];
-      });
-    } else {
-      throw Exception('Failed to send image');
-    }
+    // if (response.statusCode == 200) {
+    //   final data = jsonDecode(response.body);
+    //
+    //   setState(() {
+    //     food_item_name = data['food_item'] == "-" ? "Not a food" : data['food_item'];
+    //     expiration_max = data['expiration_max'];
+    //     expiration_min = data['expiration_min'];
+    //   });
+    // } else {
+    //   throw Exception('Failed to send image');
+    // }
   }
 
   void _loadFoodItems() {
@@ -136,6 +136,12 @@ class _HomePageState extends State<HomePage> {
     await DatabaseHelper().insertFoodItem(name, minDays, maxDays);
     _loadFoodItems();
   }
+
+  void _deleteAllFoodItems() async {
+    await DatabaseHelper().deleteAllFoodItems();
+    _loadFoodItems(); // Refresh the list after deletion
+  }
+
 
   String calculateExpirationDate(String dateReceived, int daysToAdd) {
     DateTime receivedDate = DateTime.parse(dateReceived);
@@ -262,71 +268,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ],
                 );
-                // }
-                // if (bruh == ""){
-                //   return Container(
-                //       padding: const EdgeInsets.all(40),
-                //       child: Column(
-                //         children: [
-                //           Center(
-                //               child: CircularProgressIndicator(
-                //                 color: Color(globals.appColor),
-                //               )),
-                //         ],
-                //       ));
-                // }
-                // return Container(
-                //     child: Text(bruh));
               } else {
-                // return FutureBuilder<List<Map<String, dynamic>>>(
-                //   future: DatabaseHelper().getSortedFoodItems(),
-                //   builder: (context, snapshot) {
-                //     if (snapshot.connectionState == ConnectionState.waiting) {
-                //       return Container(
-                //         padding: const EdgeInsets.all(40),
-                //         child: Center(
-                //           child: CircularProgressIndicator(
-                //             color: Color(globals.appColor),
-                //           ),
-                //         ),
-                //       );
-                //     }
-                //
-                //     if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                //       return Container(
-                //         padding: const EdgeInsets.all(40),
-                //         child: Center(
-                //           child: Text('No items found'),
-                //         ),
-                //       );
-                //     }
-                //
-                //     final foodItems = snapshot.data!;
-                //
-                //     return Container(
-                //       padding: const EdgeInsets.all(40),
-                //       child: Column(
-                //         children: [
-                //           Expanded(
-                //             child: ListView.builder(
-                //               itemCount: foodItems.length,
-                //               itemBuilder: (context, index) {
-                //                 final item = foodItems[index];
-                //                 String expirationMinDate = DateFormat('yyyy-MM-dd').format(item['calculated_expiration_min']);
-                //                 String expirationMaxDate = calculateExpirationDate(item['date_received'], item['expiration_max']);
-                //
-                //                 return ListTile(
-                //                   title: Text(item['name']),
-                //                   subtitle: Text('Expires between $expirationMinDate and $expirationMaxDate'),
-                //                 );
-                //               },
-                //             ),
-                //           ),
-                //         ],
-                //       ),
-                //     );
-                //   },
-                // );
                 return FutureBuilder<List<Map<String, dynamic>>>(
                   future: _foodItemsFuture,
                   builder: (context, snapshot) {
@@ -354,18 +296,28 @@ class _HomePageState extends State<HomePage> {
 
                     return Container(
                       padding: const EdgeInsets.all(40),
-                      child: ListView.builder(
-                        itemCount: foodItems.length,
-                        itemBuilder: (context, index) {
-                          final item = foodItems[index];
-                          String expirationMinDate = DateFormat('yyyy-MM-dd').format(item['calculated_expiration_min']);
-                          String expirationMaxDate = calculateExpirationDate(item['date_received'], item['expiration_max']);
+                      child: Column(
+                        children: [
+                          ElevatedButton(
+                            onPressed: _deleteAllFoodItems,
+                            child: Text('Delete All Food Items'),
+                          ),
+                          Expanded(
+                            child: ListView.builder(
+                              itemCount: foodItems.length,
+                              itemBuilder: (context, index) {
+                                final item = foodItems[index];
+                                String expirationMinDate = DateFormat('yyyy-MM-dd').format(item['calculated_expiration_min']);
+                                String expirationMaxDate = calculateExpirationDate(item['date_received'], item['expiration_max']);
 
-                          return ListTile(
-                            title: Text(item['name']),
-                            subtitle: Text('Expires between $expirationMinDate and $expirationMaxDate'),
-                          );
-                        },
+                                return ListTile(
+                                  title: Text(item['name']),
+                                  subtitle: Text('Expires between $expirationMinDate and $expirationMaxDate'),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   },

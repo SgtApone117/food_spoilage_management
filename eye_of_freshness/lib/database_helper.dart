@@ -29,6 +29,12 @@ class DatabaseHelper {
     );
   }
 
+  Future<void> deleteAllFoodItems() async {
+    final db = await database;
+    await db.delete('food_items'); // Deletes all rows from the food_items table
+  }
+
+
   Future<void> insertFoodItem(String name, int minDays, int maxDays) async {
     final db = await database; // This should be the writable instance
     try {
