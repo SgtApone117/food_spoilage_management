@@ -60,9 +60,6 @@ class DatabaseHelper {
     final db = await database;
     final foodItems = await db.query('food_items');
 
-    print("bruh in foodItems");
-    print(foodItems);
-
     // Create a list to hold mutable copies of food items
     List<Map<String, dynamic>> mutableFoodItems = [];
 
@@ -73,9 +70,6 @@ class DatabaseHelper {
 
       DateTime receivedDate = DateTime.parse(mutableItem['date_received'].toString());
       DateTime expirationMinDate = receivedDate.add(Duration(days: int.parse(mutableItem['expiration_min'].toString())));
-
-      print("bruh 9");
-      print(expirationMinDate);
 
       // Add the calculated expirationMinDate to the mutable item map
       mutableItem['calculated_expiration_min'] = expirationMinDate;

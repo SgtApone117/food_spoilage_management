@@ -105,49 +105,36 @@ class _HomePageState extends State<HomePage> {
 
     final response = await http.post(url, headers: headers, body: body);
 
-    // bruh bruh bruh bruh bruh bruh
-    setState(() {
-      _selectedIndex = 0;
-      food_item_name = "Mockfood";
-      expiration_max = 14;
-      expiration_min = 7;
-    });
+    // // bruh bruh bruh bruh bruh bruh
+    // setState(() {
+    //   _selectedIndex = 0;
+    //   food_item_name = "Mockfood";
+    //   expiration_max = 14;
+    //   expiration_min = 7;
+    // });
 
-    // if (response.statusCode == 200) {
-    //   final data = jsonDecode(response.body);
-    //
-    //   setState(() {
-    //     food_item_name = data['food_item'] == "-" ? "Not a food" : data['food_item'];
-    //     expiration_max = data['expiration_max'];
-    //     expiration_min = data['expiration_min'];
-    //   });
-    //
-    //   // Save to local database
-    // await saveToDatabase(food_item_name, expiration_min, expiration_max);
-    // } else {
-    //   throw Exception('Failed to send image');
-    // }
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      setState(() {
+        food_item_name = data['food_item'] == "-" ? "Not a food" : data['food_item'];
+        expiration_max = data['expiration_max'];
+        expiration_min = data['expiration_min'];
+      });
+    } else {
+      throw Exception('Failed to send image');
+    }
   }
 
   void _loadFoodItems() {
     setState(() {
       _foodItemsFuture = DatabaseHelper().getSortedFoodItems();
-      print("bruh _foodItemsFuture");
-      print(_foodItemsFuture);
     });
   }
 
   Future<void> _saveFoodItem(String name, int minDays, int maxDays) async {
-    print("bruh");
-    print("bruh");
-    print("bruh");
-    print(name +" "+ minDays.toString() +" "+ maxDays.toString());
     await DatabaseHelper().insertFoodItem(name, minDays, maxDays);
-    print("bruh");
-    print("bruh");
     _loadFoodItems();
-    print("bruh1");
-    print("bruh");
   }
 
   String calculateExpirationDate(String dateReceived, int daysToAdd) {
