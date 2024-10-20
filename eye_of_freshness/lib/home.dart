@@ -75,35 +75,43 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  Future<void> sendImageToAPI() async {
-    // bruh
-    // if (imageFile != null) { // bruh
-    //   final url = Uri.parse('https://dummyapi.com/upload'); // Dummy API URL // bruh
-    //   final request = http.MultipartRequest('POST', url); // bruh
-    //
-    //   // Get image file path // bruh
-    //   final imageFilePath = imageFile!.path; // bruh
-    //   request.files.add( // bruh
-    //     await http.MultipartFile.fromPath( // bruh
-    //       'file', // Name of the field for the image // bruh
-    //       imageFilePath, // Path to the captured image // bruh
-    //     ),
-    //   );
-    //
-    //   final response = await request.send(); // bruh
-    //   if (response.statusCode == 200) { // bruh
-    //     print('Image uploaded successfully'); // bruh
-    //   } else { // bruh
-    //     print('Failed to upload image'); // bruh
-    //   }
-    // }
+  Future<void> sendImage(XFile image) async {
+    final bytes = await image.readAsBytes(); // Read the image as bytes
+    String base64Image = base64Encode(bytes); // Convert bytes to Base64
+
+    final url = Uri.parse('${globals.backendIP}analyze'); // Update the URL to your API endpoint
+    final headers = {'Content-Type': 'application/json'};
+
+    // Prepare the JSON body with the Base64 image
+    final body = jsonEncode({
+      'image': base64Image, // Send the Base64-encoded image
+    });
+
+    final response = await http.post(url, headers: headers, body: body);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      print(data);
+      setState(() {
+        bruh = data['vision_response']['responses'][0]['labelAnnotations'][0]['description'];
+      });
+      // Extract the product type and expiration date from the vision_response
+      // String productType = data['vision_response']['responses'][0]['labelAnnotations'][0]['description'];
+      // String expirationDate = '2024-12-31'; // Replace with logic to determine expiration date
+
+      // Save to local database
+      // await DatabaseHelper().insertProduct(productType, expirationDate);
+    } else {
+      throw Exception('Failed to send image');
+    }
   }
 
   getStart() async {
     print("bruh");
     print("bruh");
     FoodItem foodItem = FoodItem(foodtype: "pizza");
-    final url = Uri.parse('${globals.backendIP}start'); // FastAPI backend URL
+    final url = Uri.parse('${globals.backendIP}analyze'); // FastAPI backend URL
     final headers = {'Content-Type': 'application/json'};
     final body = jsonEncode(foodItem.toJson()); // Convert FoodItem to JSON
 
@@ -161,6 +169,9 @@ class _HomePageState extends State<HomePage> {
                     padding: const EdgeInsets.all(40),
                     child: Column(
                       children: [
+                        if (bruh != "")
+                        Text(bruh),
+                        if (bruh == "")
                         Center(
                             child: CircularProgressIndicator(
                           color: Color(globals.appColor),
@@ -227,7 +238,7 @@ class _HomePageState extends State<HomePage> {
                                 // bruh
                                 onPressed: () async {
                                   // bruh
-                                  await sendImageToAPI(); // Send captured image to API // bruh
+                                  await sendImage(imageFile!); // Send captured image to API // bruh
                                 },
                                 child: const Text('Send to API'), // bruh
                               ),

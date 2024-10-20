@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 import requests
 
 # Define the URL of the Google Vision API
-url = 'https://vision.googleapis.com/v1/images:annotate?key='  # Replace with your actual API key
+url = 'https://vision.googleapis.com/v1/images:annotate?key=AIzaSyDhqy_8orlYewPBZn57hC0fFYDtEzrVI_8'  # Replace with your actual API key
 
 # Define the headers for the Google Vision API
 headers = {

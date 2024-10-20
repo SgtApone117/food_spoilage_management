@@ -13,7 +13,7 @@ def encode_image_to_base64(image_path):
     return base64_encoded_string
 
 # Example usage
-image_path = 'C:\\Users\\donle\\Downloads\\food_spoilage_management\\fast_api\\classic-cheese-pizza-FT-RECIPE0422-31a2c938fc2546c9a07b7011658cfd05.jpg'
+image_path = ('C:\\Users\\semem\\Downloads\\bruh.png')
 encoded_image = encode_image_to_base64(image_path)
 
 # Define the URL of the API
